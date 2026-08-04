@@ -1,0 +1,167 @@
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { chatService } from '../../../src/services/chatService';
+import { socketActions } from '../../../src/services/socketService';
+import { useSocket } from '../../../src/context/SocketContext';
+import { useAuth } from '../../../src/context/AuthContext';
+import { Message } from '../../../src/types';
+
+export default function ChatDetailScreen() {
+  const { chatId } = useLocalSearchParams<{ chatId: string }>();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [text, setText] = useState('');
+  const router = useRouter();
+  const { socket } = useSocket();
+  const { user } = useAuth();
+  const insets = useSafeAreaInsets();
+  const typingTimeout = useRef<any>(null);
+  const [isTyping, setIsTyping] = useState(false);
+
+  useEffect(() => {
+    if (!chatId) return;
+    loadMessages();
+    chatService.markAsRead(chatId);
+    
+    if (socket) {
+      socketActions.join(chatId);
+      
+      const handleNewMessage = (msg: Message) => {
+        if (msg.chatId === chatId) {
+          setMessages(prev => [msg, ...prev]);
+          chatService.markAsRead(chatId);
+        }
+      };
+
+      const handleTyping = (data: { chatId: string, userId: string }) => {
+        if (data.chatId === chatId && data.userId !== user?.userId) {
+          setIsTyping(true);
+          setTimeout(() => setIsTyping(false), 2000);
+        }
+      };
+
+      socket.on('message:new', handleNewMessage);
+      socket.on('typing:status', handleTyping);
+
+      return () => {
+        socket.off('message:new', handleNewMessage);
+        socket.off('typing:status', handleTyping);
+        socketActions.leave(chatId);
+        chatService.markAsRead(chatId);
+      };
+    }
+  }, [chatId, socket]);
+
+  const loadMessages = async () => {
+    if (!chatId) return;
+    try {
+      const data = await chatService.getMessages(chatId);
+      // data is MessagesResponse with messages array
+      const msgs = data.messages || data;
+      setMessages(Array.isArray(msgs) ? msgs.reverse() : []);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSend = () => {
+    if (!text.trim() || !chatId) return;
+    socketActions.sendMessage(chatId, text.trim());
+    setText('');
+  };
+
+  const handleTextChange = (val: string) => {
+    setText(val);
+    if (!chatId) return;
+    if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    socketActions.typing(chatId, true);
+    typingTimeout.current = setTimeout(() => {
+      socketActions.typing(chatId, false);
+    }, 300);
+  };
+
+  const formatTime = (dateStr: string): string => {
+    try {
+      return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
+
+  const renderItem = ({ item }: { item: Message }) => {
+    const isMe = item.senderId === user?.userId;
+    return (
+      <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowThem]}>
+        <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleThem]}>
+          {item.type === 'image' && item.imageUrl && (
+            <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
+          )}
+          <Text style={styles.messageText}>{item.content}</Text>
+          <Text style={styles.timeText}>{formatTime(item.createdAt)}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Ionicons name="arrow-back" size={24} color="#2A2E4A" />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Chat</Text>
+          {isTyping && <Text style={styles.typingIndicator}>escribiendo...</Text>}
+        </View>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <KeyboardAvoidingView style={styles.keyboardAvoid} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <FlatList
+          data={messages}
+          keyExtractor={(item, index) => item.id || index.toString()}
+          renderItem={renderItem}
+          inverted
+          contentContainerStyle={styles.listContent}
+        />
+        
+        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <TextInput
+            style={styles.input}
+            placeholder="Escribe un mensaje..."
+            value={text}
+            onChangeText={handleTextChange}
+            multiline
+          />
+          <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
+            <Ionicons name="send" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F5F0E8' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, paddingVertical: 12, backgroundColor: '#FDFBF5', borderBottomWidth: 1, borderBottomColor: '#C8C4D8' },
+  headerCenter: { alignItems: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#2A2E4A' },
+  typingIndicator: { fontSize: 12, color: '#5BBF6B', fontStyle: 'italic' },
+  keyboardAvoid: { flex: 1 },
+  listContent: { padding: 16 },
+  messageRow: { flexDirection: 'row', marginBottom: 12 },
+  messageRowMe: { justifyContent: 'flex-end' },
+  messageRowThem: { justifyContent: 'flex-start' },
+  bubble: { maxWidth: '75%', padding: 12, borderRadius: 16 },
+  bubbleMe: { backgroundColor: '#B8E8C4', borderBottomRightRadius: 4 },
+  bubbleThem: { backgroundColor: '#B8D4F0', borderBottomLeftRadius: 4 },
+  messageText: { fontSize: 16, color: '#2A2E4A' },
+  messageImage: { width: 200, height: 200, borderRadius: 12, marginBottom: 8, resizeMode: 'cover' },
+  timeText: { fontSize: 10, color: '#7A7E9A', alignSelf: 'flex-end', marginTop: 4 },
+  inputContainer: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FDFBF5', borderTopWidth: 1, borderTopColor: '#C8C4D8', alignItems: 'center' },
+  input: { flex: 1, backgroundColor: '#F5F0E8', borderWidth: 1, borderColor: '#C8C4D8', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100 },
+  sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4B8FD4', justifyContent: 'center', alignItems: 'center', marginLeft: 12, shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 0, elevation: 2 },
+});
