@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, TextInput, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { chatService } from '../../src/services/chatService';
+import { profileService } from '../../src/services/profileService';
 import { useSocket } from '../../src/context/SocketContext';
 import { useAuth } from '../../src/context/AuthContext';
-import { ChatListItem } from '../../src/types';
+import { ChatListItem, Profile } from '../../src/types';
 
 export default function ChatsScreen() {
   const [chats, setChats] = useState<ChatListItem[]>([]);
@@ -14,6 +15,7 @@ export default function ChatsScreen() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const router = useRouter();
   const { onlineUsers } = useSocket();
   const { user } = useAuth();
@@ -21,8 +23,33 @@ export default function ChatsScreen() {
   const loadChats = async () => {
     try {
       const data = await chatService.getChats();
-      setChats(Array.isArray(data) ? data : []);
-      setFilteredChats(Array.isArray(data) ? data : []);
+      const chatsList = Array.isArray(data) ? data : [];
+      setChats(chatsList);
+      setFilteredChats(chatsList);
+
+      // Fetch missing profiles
+      const missingIds = new Set<string>();
+      chatsList.forEach(c => {
+        const otherId = c.participants.find(p => p !== user?.userId);
+        if (otherId && !profiles[otherId]) {
+          missingIds.add(otherId);
+        }
+      });
+
+      if (missingIds.size > 0) {
+        const newProfiles: Record<string, Profile> = {};
+        await Promise.all(
+          Array.from(missingIds).map(async (id) => {
+            try {
+              const p = await profileService.getProfile(id);
+              newProfiles[id] = p;
+            } catch (err) {
+              console.log('Error fetching profile', id);
+            }
+          })
+        );
+        setProfiles(prev => ({ ...prev, ...newProfiles }));
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -36,7 +63,7 @@ export default function ChatsScreen() {
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadChats();
-  }, []);
+  }, [profiles]); // keep reference to current profiles
 
   const handleSearch = (text: string) => {
     setSearch(text);
@@ -44,7 +71,10 @@ export default function ChatsScreen() {
       setFilteredChats(chats);
     } else {
       setFilteredChats(chats.filter(c => {
-        return c.lastMessage?.content?.toLowerCase().includes(text.toLowerCase()) || false;
+        const otherId = c.participants.find(p => p !== user?.userId);
+        const nameMatch = otherId && profiles[otherId]?.name?.toLowerCase().includes(text.toLowerCase());
+        const msgMatch = c.lastMessage?.content?.toLowerCase().includes(text.toLowerCase());
+        return nameMatch || msgMatch;
       }));
     }
   };
@@ -65,18 +95,34 @@ export default function ChatsScreen() {
 
   const renderItem = ({ item }: { item: ChatListItem }) => {
     const otherUserId = getOtherUserId(item.participants);
+    const profile = otherUserId ? profiles[otherUserId] : null;
     const isOnline = otherUserId ? onlineUsers[otherUserId] : false;
-    const initial = otherUserId ? otherUserId.charAt(0).toUpperCase() : '?';
     
+    // Display data
+    const displayName = profile?.name || 'Usuario';
+    const displayPhoto = profile?.photos?.[0];
+    const initial = displayName.charAt(0).toUpperCase();
+    
+    let previewMessage = item.lastMessage?.content || 'Sin mensajes';
+    if (item.lastMessage?.type === 'image') {
+      previewMessage = '📷 Imagen';
+    }
+
     return (
       <TouchableOpacity style={styles.itemCard} onPress={() => router.push(`/(tabs)/chat/${item.id}` as any)}>
         <View>
-          <View style={styles.avatar}><Text style={styles.avatarText}>{initial}</Text></View>
+          <View style={styles.avatar}>
+            {displayPhoto ? (
+              <Image source={{ uri: displayPhoto }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{initial}</Text>
+            )}
+          </View>
           {isOnline && <View style={styles.onlineBadge} />}
         </View>
         <View style={styles.info}>
-          <Text style={styles.name}>Chat</Text>
-          <Text style={styles.lastMessage} numberOfLines={1}>{item.lastMessage?.content || 'Sin mensajes'}</Text>
+          <Text style={styles.name}>{displayName}</Text>
+          <Text style={styles.lastMessage} numberOfLines={1}>{previewMessage}</Text>
         </View>
         <View style={styles.meta}>
           <Text style={styles.time}>{formatTime(item.lastMessage?.createdAt)}</Text>
@@ -112,7 +158,7 @@ export default function ChatsScreen() {
             <View style={styles.emptyContainer}>
               <Ionicons name="chatbubbles-outline" size={48} color="#7A7E9A" style={{ marginBottom: 16 }} />
               <Text style={styles.emptyText}>Aún no hay conversaciones.</Text>
-              <Text style={styles.emptySubtext}>¡Ve a Personas y encuentra a alguien!</Text>
+              <Text style={styles.emptySubtext}>¡Ve a Buscar y encuentra a alguien!</Text>
             </View>
           }
         />
@@ -130,7 +176,8 @@ const styles = StyleSheet.create({
   searchInput: { backgroundColor: '#FDFBF5', borderWidth: 2, borderColor: '#C8C4D8', borderRadius: 16, padding: 12, fontSize: 16 },
   listContent: { paddingHorizontal: 16, flexGrow: 1 },
   itemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FDFBF5', borderRadius: 16, padding: 12, marginBottom: 12, borderWidth: 2, borderColor: 'rgba(42,46,74,0.12)', shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
-  avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#6BB8E0', justifyContent: 'center', alignItems: 'center' },
+  avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#6BB8E0', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
+  avatarImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   avatarText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   onlineBadge: { position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderRadius: 7, backgroundColor: '#5BBF6B', borderWidth: 2, borderColor: '#FDFBF5' },
   info: { flex: 1, marginLeft: 12 },
@@ -138,7 +185,7 @@ const styles = StyleSheet.create({
   lastMessage: { fontSize: 14, color: '#7A7E9A', marginTop: 4 },
   meta: { alignItems: 'flex-end' },
   time: { fontSize: 12, color: '#7A7E9A', marginBottom: 4 },
-  unreadBadge: { backgroundColor: '#D94F4F', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
+  unreadBadge: { backgroundColor: '#D94F4F', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2, marginTop: 4 },
   unreadText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
   emptyText: { textAlign: 'center', color: '#2A2E4A', fontSize: 18, fontWeight: 'bold' },

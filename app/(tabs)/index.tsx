@@ -67,6 +67,12 @@ export default function PersonasFeedScreen() {
     });
   };
 
+  const handleSwipeCompleteRef = useRef(handleSwipeComplete);
+
+  useEffect(() => {
+    handleSwipeCompleteRef.current = handleSwipeComplete;
+  }, [handleSwipeComplete]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -84,9 +90,9 @@ export default function PersonasFeedScreen() {
       },
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dx > SWIPE_THRESHOLD) {
-          handleSwipeComplete(true);
+          handleSwipeCompleteRef.current(true);
         } else if (gesture.dx < -SWIPE_THRESHOLD) {
-          handleSwipeComplete(false);
+          handleSwipeCompleteRef.current(false);
         } else {
           Animated.spring(position, {
             toValue: { x: 0, y: 0 },
@@ -254,7 +260,7 @@ const styles = StyleSheet.create({
   card: {
     position: 'absolute',
     width: SCREEN_WIDTH - 24,
-    height: '95%',
+    height: '92%',
     backgroundColor: '#FDFBF5',
     borderRadius: 20,
     overflow: 'hidden',
@@ -263,8 +269,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 6,
+    zIndex: 10,
   },
-  cardBehind: { transform: [{ scale: 0.95 }], opacity: 0.7, zIndex: -1 },
+  cardBehind: { transform: [{ scale: 0.95 }], opacity: 0.7, zIndex: 1 },
   cardImage: { width: '100%', flex: 1, resizeMode: 'cover' },
   cardImagePlaceholder: { width: '100%', flex: 1, backgroundColor: '#E8F4FD', justifyContent: 'center', alignItems: 'center' },
   cardFooter: {

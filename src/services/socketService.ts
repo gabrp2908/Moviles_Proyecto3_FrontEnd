@@ -54,13 +54,13 @@ export const getSocket = () => socket;
 
 export const socketActions = {
   join: (chatId: string) => {
-    socket?.emit('join', { chatId });
+    socket?.emit('join', { chatIds: [chatId] });
   },
   leave: (chatId: string) => {
     socket?.emit('leave', { chatId });
   },
   sendMessage: (chatId: string, content: string, type: 'text' | 'image' = 'text', imageUrl?: string) => {
-    socket?.emit('message:send', { chatId, content, type, imageUrl });
+    socket?.emit('sendMessage', { chatId, content, type, imageUrl });
   },
   typing: (chatId: string, isTyping: boolean = true) => {
     socket?.emit('typing', { chatId, typing: isTyping });
