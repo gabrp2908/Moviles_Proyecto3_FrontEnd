@@ -44,7 +44,6 @@ export default function ChatsScreen() {
       setFilteredChats(chats);
     } else {
       setFilteredChats(chats.filter(c => {
-        const otherUserId = c.participants.find((p: string) => p !== user?.userId);
         return c.lastMessage?.content?.toLowerCase().includes(text.toLowerCase()) || false;
       }));
     }
@@ -91,7 +90,13 @@ export default function ChatsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <Text style={styles.header}>Chats</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>Chats</Text>
+        <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/(tabs)/likes')}>
+          <Ionicons name="notifications-outline" size={26} color="#3B7BC0" />
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.searchContainer}>
         <TextInput style={styles.searchInput} placeholder="Buscar chats..." value={search} onChangeText={handleSearch} />
       </View>
@@ -107,7 +112,7 @@ export default function ChatsScreen() {
             <View style={styles.emptyContainer}>
               <Ionicons name="chatbubbles-outline" size={48} color="#7A7E9A" style={{ marginBottom: 16 }} />
               <Text style={styles.emptyText}>Aún no hay conversaciones.</Text>
-              <Text style={styles.emptySubtext}>¡Ve a Buscar y encuentra a alguien!</Text>
+              <Text style={styles.emptySubtext}>¡Ve a Personas y encuentra a alguien!</Text>
             </View>
           }
         />
@@ -118,8 +123,10 @@ export default function ChatsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F0E8' },
-  header: { fontSize: 24, fontWeight: 'bold', color: '#4B8FD4', padding: 16 },
-  searchContainer: { paddingHorizontal: 16, paddingBottom: 16 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  header: { fontSize: 24, fontWeight: 'bold', color: '#4B8FD4' },
+  notifBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FDFBF5', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(42,46,74,0.12)' },
+  searchContainer: { paddingHorizontal: 16, paddingVertical: 12 },
   searchInput: { backgroundColor: '#FDFBF5', borderWidth: 2, borderColor: '#C8C4D8', borderRadius: 16, padding: 12, fontSize: 16 },
   listContent: { paddingHorizontal: 16, flexGrow: 1 },
   itemCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FDFBF5', borderRadius: 16, padding: 12, marginBottom: 12, borderWidth: 2, borderColor: 'rgba(42,46,74,0.12)', shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },

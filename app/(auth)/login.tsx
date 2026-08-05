@@ -23,7 +23,7 @@ export default function LoginScreen() {
       setLoading(true);
       const cleanEmail = email.trim().toLowerCase();
       await login(cleanEmail, password);
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/chats');
     } catch (e: any) {
       const status = e.response?.status;
       const serverMsg = e.response?.data?.message;

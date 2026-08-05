@@ -24,7 +24,7 @@ export default function RegisterScreen() {
       setLoading(true);
       const cleanEmail = email.trim().toLowerCase();
       await register(cleanEmail, password);
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/chats');
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Error al crear cuenta');
     } finally {

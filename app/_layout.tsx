@@ -18,7 +18,7 @@ const RootLayoutNav = () => {
     if (!token && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (token && inAuthGroup) {
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/chats');
     }
   }, [token, isLoading, segments]);
 

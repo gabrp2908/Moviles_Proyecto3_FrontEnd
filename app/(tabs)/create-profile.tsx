@@ -104,7 +104,7 @@ export default function CreateProfileScreen() {
 
       await profileService.createProfile(payload);
       setHasProfile(true);
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/chats');
     } catch (e: any) {
       let rawMsg = e.response?.data?.message || 'Error al crear perfil';
       if (Array.isArray(rawMsg)) {
