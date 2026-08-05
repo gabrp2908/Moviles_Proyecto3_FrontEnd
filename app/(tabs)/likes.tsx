@@ -75,7 +75,7 @@ export default function LikesScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>💝</Text>
+              <Ionicons name="heart-dislike-outline" size={48} color="#7A7E9A" style={{ marginBottom: 16 }} />
               <Text style={styles.emptyText}>Sin notificaciones nuevas</Text>
             </View>
           }
@@ -85,7 +85,7 @@ export default function LikesScreen() {
       <Modal visible={matchModalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalEmoji}>🎉</Text>
+            <Ionicons name="sparkles" size={56} color="#E8C845" style={{ marginBottom: 12 }} />
             <Text style={styles.modalTitle}>¡Es un match!</Text>
             <TouchableOpacity style={styles.button} onPress={() => { setMatchModalVisible(false); if(currentMatchId) router.push(`/(tabs)/chat/${currentMatchId}` as any); }}>
               <Text style={styles.buttonText}>Enviar mensaje</Text>
@@ -113,11 +113,9 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 8 },
   btn: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 0, elevation: 2 },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyEmoji: { fontSize: 48, marginBottom: 16 },
   emptyText: { textAlign: 'center', color: '#7A7E9A', fontSize: 18 },
   modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalCard: { backgroundColor: '#FDFBF5', borderRadius: 24, padding: 32, alignItems: 'center' },
-  modalEmoji: { fontSize: 48, marginBottom: 12 },
   modalTitle: { fontSize: 28, fontWeight: 'bold', color: '#3B7BC0', marginBottom: 20 },
   button: { backgroundColor: '#4B8FD4', borderRadius: 16, padding: 16, alignItems: 'center', width: '100%', shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 0, elevation: 4 },
   buttonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },

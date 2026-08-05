@@ -22,7 +22,8 @@ export default function RegisterScreen() {
     }
     try {
       setLoading(true);
-      await register(email, password);
+      const cleanEmail = email.trim().toLowerCase();
+      await register(cleanEmail, password);
       router.replace('/(tabs)');
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.message || 'Error al crear cuenta');
@@ -35,7 +36,7 @@ export default function RegisterScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>People Finder</Text>
-        <Text style={styles.subtitle}>Crea tu cuenta ☀️</Text>
+        <Text style={styles.subtitle}>Crea tu cuenta</Text>
         
         <TextInput style={styles.input} placeholder="Correo electrónico" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
         <TextInput style={styles.input} placeholder="Contraseña" value={password} onChangeText={setPassword} secureTextEntry />

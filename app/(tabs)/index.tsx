@@ -75,9 +75,24 @@ export default function SwipeFeedScreen() {
             </View>
             <View style={styles.cardInfo}>
               <Text style={styles.infoText}>{currentProfile.aboutMe || 'Sin descripción'}</Text>
-              {currentProfile.country && <Text style={styles.infoSubtext}>📍 {currentProfile.country}</Text>}
-              {currentProfile.height && <Text style={styles.infoSubtext}>📏 {currentProfile.height} cm</Text>}
-              {currentProfile.education && <Text style={styles.infoSubtext}>🎓 {currentProfile.education}</Text>}
+              {currentProfile.country && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="location-outline" size={16} color="#7A7E9A" style={{ marginRight: 6 }} />
+                  <Text style={styles.infoSubtext}>{currentProfile.country}</Text>
+                </View>
+              )}
+              {currentProfile.height && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="resize-outline" size={16} color="#7A7E9A" style={{ marginRight: 6 }} />
+                  <Text style={styles.infoSubtext}>{currentProfile.height} cm</Text>
+                </View>
+              )}
+              {currentProfile.education && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="school-outline" size={16} color="#7A7E9A" style={{ marginRight: 6 }} />
+                  <Text style={styles.infoSubtext}>{currentProfile.education}</Text>
+                </View>
+              )}
               
               {currentProfile.languages && currentProfile.languages.length > 0 && (
                 <View style={styles.chips}>
@@ -90,7 +105,7 @@ export default function SwipeFeedScreen() {
           </View>
         ) : (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>🌤️</Text>
+            <Ionicons name="sunny-outline" size={48} color="#7A7E9A" style={{ marginBottom: 16 }} />
             <Text style={styles.emptyText}>No hay más personas por ahora.</Text>
             <Text style={styles.emptySubtext}>¡Vuelve más tarde!</Text>
           </View>
@@ -111,7 +126,7 @@ export default function SwipeFeedScreen() {
       <Modal visible={matchModalVisible} transparent animationType="slide">
         <View style={styles.modalContainer}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalEmoji}>🎉</Text>
+            <Ionicons name="sparkles" size={56} color="#E8C845" style={{ marginBottom: 12 }} />
             <Text style={styles.modalTitle}>¡Es un match!</Text>
             <Text style={styles.modalSubtitle}>Ahora pueden conversar</Text>
             <TouchableOpacity style={styles.button} onPress={() => { setMatchModalVisible(false); if(currentMatchId) router.push(`/(tabs)/chat/${currentMatchId}` as any); }}>
@@ -138,19 +153,18 @@ const styles = StyleSheet.create({
   cardName: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
   cardInfo: { padding: 20 },
   infoText: { fontSize: 16, color: '#2A2E4A', marginBottom: 12 },
-  infoSubtext: { fontSize: 14, color: '#7A7E9A', marginBottom: 6 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  infoSubtext: { fontSize: 14, color: '#7A7E9A' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 },
   chip: { backgroundColor: '#B8D4F0', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, marginRight: 8, marginBottom: 8 },
   chipText: { color: '#3B7BC0', fontSize: 12, fontWeight: 'bold' },
   emptyContainer: { alignItems: 'center', marginTop: 80 },
-  emptyEmoji: { fontSize: 48, marginBottom: 16 },
   emptyText: { textAlign: 'center', fontSize: 18, color: '#2A2E4A', fontWeight: 'bold' },
   emptySubtext: { textAlign: 'center', fontSize: 16, color: '#7A7E9A', marginTop: 8 },
   actions: { flexDirection: 'row', justifyContent: 'space-evenly', paddingBottom: 20 },
   actionBtn: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 0, elevation: 4 },
   modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
   modalCard: { backgroundColor: '#FDFBF5', borderRadius: 24, padding: 32, alignItems: 'center' },
-  modalEmoji: { fontSize: 48, marginBottom: 12 },
   modalTitle: { fontSize: 28, fontWeight: 'bold', color: '#3B7BC0', marginBottom: 8 },
   modalSubtitle: { fontSize: 16, color: '#7A7E9A', marginBottom: 24 },
   button: { backgroundColor: '#4B8FD4', borderRadius: 16, padding: 16, alignItems: 'center', width: '100%', shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 0, elevation: 4 },

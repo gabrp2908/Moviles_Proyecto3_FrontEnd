@@ -23,6 +23,7 @@ export const startHeartbeat = () => {
 export const connectSocket = (token: string): Socket => {
   if (socket) return socket;
   socket = io(BASE_URL, {
+    transports: ['websocket', 'polling'],
     auth: {
       token
     }

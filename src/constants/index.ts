@@ -9,6 +9,12 @@ export const LANGUAGES = [
 
 export const EDUCATION = ['Bachelors', 'In College', 'High School', 'PhD', 'In Grad School', 'Masters'];
 export const GENDERS = ['masculino', 'femenino', 'otro'];
+export const COUNTRIES = [
+  'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Costa Rica',
+  'Cuba', 'Ecuador', 'El Salvador', 'España', 'Estados Unidos', 'Guatemala',
+  'Honduras', 'México', 'Nicaragua', 'Panamá', 'Paraguay', 'Perú',
+  'Puerto Rico', 'República Dominicana', 'Uruguay', 'Venezuela', 'Otro'
+];
 
 export const LIMITS = {
   nameMax: 20,

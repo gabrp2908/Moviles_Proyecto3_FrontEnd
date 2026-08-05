@@ -2,8 +2,16 @@ import { api } from './api';
 
 export const imageService = {
   uploadProfileImage: async (imageUri: string): Promise<{ imageUrl: string }> => {
+    const filename = imageUri.split('/').pop() || 'photo.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+
     const formData = new FormData();
-    formData.append('file', { uri: imageUri, type: 'image/jpeg', name: 'photo.jpg' } as any);
+    formData.append('file', {
+      uri: imageUri,
+      name: filename,
+      type: type,
+    } as any);
     
     const response = await api.post('/images/profile', formData, {
       headers: {
@@ -14,8 +22,16 @@ export const imageService = {
   },
 
   uploadChatImage: async (imageUri: string): Promise<{ imageUrl: string }> => {
+    const filename = imageUri.split('/').pop() || 'photo.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+
     const formData = new FormData();
-    formData.append('file', { uri: imageUri, type: 'image/jpeg', name: 'photo.jpg' } as any);
+    formData.append('file', {
+      uri: imageUri,
+      name: filename,
+      type: type,
+    } as any);
     
     const response = await api.post('/images/chat', formData, {
       headers: {

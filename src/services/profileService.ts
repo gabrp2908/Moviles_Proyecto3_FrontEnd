@@ -2,9 +2,16 @@ import { api } from './api';
 import { Profile, FeedProfile, CreateProfilePayload, UpdateProfilePayload } from '../types';
 
 export const profileService = {
-  getMyProfile: async (): Promise<Profile> => {
-    const response = await api.get('/profiles/me');
-    return response.data;
+  getMyProfile: async (): Promise<Profile | null> => {
+    try {
+      const response = await api.get('/profiles/me');
+      return response.data;
+    } catch (e: any) {
+      if (e.response && e.response.status === 404) {
+        return null;
+      }
+      throw e;
+    }
   },
 
   createProfile: async (data: CreateProfilePayload): Promise<Profile> => {

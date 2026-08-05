@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { chatService } from '../../src/services/chatService';
 import { useSocket } from '../../src/context/SocketContext';
@@ -43,9 +44,7 @@ export default function ChatsScreen() {
       setFilteredChats(chats);
     } else {
       setFilteredChats(chats.filter(c => {
-        // participants is string[] — get the other user's ID
         const otherUserId = c.participants.find((p: string) => p !== user?.userId);
-        // We don't have the name here, so filter by ID or last message content
         return c.lastMessage?.content?.toLowerCase().includes(text.toLowerCase()) || false;
       }));
     }
@@ -106,7 +105,7 @@ export default function ChatsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>💬</Text>
+              <Ionicons name="chatbubbles-outline" size={48} color="#7A7E9A" style={{ marginBottom: 16 }} />
               <Text style={styles.emptyText}>Aún no hay conversaciones.</Text>
               <Text style={styles.emptySubtext}>¡Ve a Buscar y encuentra a alguien!</Text>
             </View>
@@ -135,7 +134,6 @@ const styles = StyleSheet.create({
   unreadBadge: { backgroundColor: '#D94F4F', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 2 },
   unreadText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   emptyContainer: { alignItems: 'center', marginTop: 60 },
-  emptyEmoji: { fontSize: 48, marginBottom: 16 },
   emptyText: { textAlign: 'center', color: '#2A2E4A', fontSize: 18, fontWeight: 'bold' },
   emptySubtext: { textAlign: 'center', color: '#7A7E9A', fontSize: 16, marginTop: 8 },
 });

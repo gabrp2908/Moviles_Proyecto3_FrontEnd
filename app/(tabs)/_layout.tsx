@@ -57,7 +57,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <Ionicons name="person" size={size} color={color} />,
         }}
       />
-      <Tabs.Screen name="create-profile" options={{ href: null }} />
+      <Tabs.Screen name="create-profile" options={{ href: null, tabBarStyle: { display: 'none' } }} />
       <Tabs.Screen name="chat/[chatId]" options={{ href: null, tabBarStyle: { display: 'none' } }} />
     </Tabs>
   );

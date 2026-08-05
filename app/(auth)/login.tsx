@@ -15,12 +15,32 @@ export default function LoginScreen() {
       Alert.alert('Error', 'Por favor, rellena todos los campos');
       return;
     }
+    if (password.length < 6) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+      return;
+    }
     try {
       setLoading(true);
-      await login(email, password);
+      const cleanEmail = email.trim().toLowerCase();
+      await login(cleanEmail, password);
       router.replace('/(tabs)');
     } catch (e: any) {
-      Alert.alert('Error', e.response?.data?.message || 'Error al iniciar sesión');
+      const status = e.response?.status;
+      const serverMsg = e.response?.data?.message;
+      
+      if (status === 401) {
+        Alert.alert('Error', 'Credenciales inválidas. Verifica tu correo y contraseña.');
+      } else if (status === 429) {
+        Alert.alert('Error', 'Demasiados intentos. Espera unos minutos e intenta de nuevo.');
+      } else if (status === 500) {
+        Alert.alert('Error del servidor', 'El servidor tiene un problema interno. Puede que esté reiniciándose. Intenta de nuevo en unos segundos.');
+      } else if (e.code === 'ECONNABORTED' || e.message?.includes('timeout')) {
+        Alert.alert('Sin respuesta', 'El servidor tardó demasiado en responder. Puede estar despertando, intenta de nuevo en 30 segundos.');
+      } else if (!e.response) {
+        Alert.alert('Sin conexión', 'No se pudo conectar con el servidor. Verifica tu conexión a internet.');
+      } else {
+        Alert.alert('Error', serverMsg || 'Error al iniciar sesión');
+      }
     } finally {
       setLoading(false);
     }
@@ -30,7 +50,7 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>People Finder</Text>
-        <Text style={styles.subtitle}>Encuentra a tu gente ☀️</Text>
+        <Text style={styles.subtitle}>Encuentra a tu gente</Text>
         
         <TextInput
           style={styles.input}

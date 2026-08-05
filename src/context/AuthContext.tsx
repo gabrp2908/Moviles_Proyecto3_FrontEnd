@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(me);
         try {
           const profile = await profileService.getMyProfile();
-          setHasProfile(!!profile);
+          setHasProfile(!!profile && !!profile.name);
         } catch (e) {
           setHasProfile(false);
         }
@@ -50,13 +50,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, pass: string) => {
     const res = await authService.mobileLogin(email, pass);
-    // mobileLogin already saves the token via saveToken inside the service
-    // res is the full AuthTokenResponse with access_token and user
     setToken(res.access_token);
     setUser(res.user);
     try {
       const profile = await profileService.getMyProfile();
-      setHasProfile(!!profile);
+      setHasProfile(!!profile && !!profile.name);
     } catch (e) {
       setHasProfile(false);
     }
@@ -64,7 +62,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const register = async (email: string, pass: string) => {
     await authService.register(email, pass);
-    await login(email, pass);
+    const res = await authService.mobileLogin(email, pass);
+    setToken(res.access_token);
+    setUser(res.user);
+    setHasProfile(false);
   };
 
   const logout = async () => {

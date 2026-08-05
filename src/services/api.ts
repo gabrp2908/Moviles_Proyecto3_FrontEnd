@@ -18,6 +18,10 @@ export const clearToken = async () => {
 
 export const api = axios.create({
   baseURL: BASE_URL,
+  timeout: 15000,
+  headers: {
+    'Accept': 'application/json',
+  },
 });
 
 api.interceptors.request.use(async (config) => {

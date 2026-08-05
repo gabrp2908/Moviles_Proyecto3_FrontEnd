@@ -39,7 +39,7 @@ export default function ProfileScreen() {
     try {
       setSaving(true);
       await profileService.updateProfile({ aboutMe, country });
-      Alert.alert('Éxito', 'Perfil actualizado ✅');
+      Alert.alert('Éxito', 'Perfil actualizado');
       loadProfile();
     } catch (e) {
       Alert.alert('Error', 'No se pudo actualizar');
@@ -58,11 +58,16 @@ export default function ProfileScreen() {
       });
       if (!result.canceled && result.assets[0]) {
         const res = await imageService.uploadProfileImage(result.assets[0].uri);
-        Alert.alert('Éxito', 'Foto subida');
+        if (res?.imageUrl && profile) {
+          const updatedPhotos = [...(profile.photos || []), res.imageUrl];
+          await profileService.updateProfile({ photos: updatedPhotos });
+        }
+        Alert.alert('Éxito', 'Foto subida correctamente');
         loadProfile();
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Error al subir foto');
+      console.error('Upload photo error:', e.response?.data || e);
+      Alert.alert('Error', e.response?.data?.message || e.message || 'Error al subir foto');
     }
   };
 
@@ -100,7 +105,10 @@ export default function ProfileScreen() {
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               {profile?.photos && profile.photos.length > 0 ? (
-                <Image source={{ uri: profile.photos[0] }} style={styles.avatarImage} />
+                <Image 
+                  source={{ uri: profile.photos[0] }} 
+                  style={styles.avatarImage} 
+                />
               ) : (
                 <Text style={styles.avatarText}>{profile?.name?.[0] || '?'}</Text>
               )}
@@ -114,7 +122,11 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Fotos</Text>
             <View style={styles.photoGrid}>
               {profile?.photos?.map((photo, i) => (
-                <Image key={i} source={{ uri: photo }} style={styles.photoThumb} />
+                <Image 
+                  key={i} 
+                  source={{ uri: photo }} 
+                  style={styles.photoThumb} 
+                />
               ))}
               <TouchableOpacity style={styles.addPhotoBtn} onPress={handleAddPhoto}>
                 <Ionicons name="add" size={30} color="#4B8FD4" />
