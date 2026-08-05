@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, Image, Modal, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, Image, Modal, FlatList, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -120,91 +120,101 @@ export default function CreateProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.card}>
-          <Text style={styles.title}>Crea tu Perfil</Text>
-          <Text style={styles.subtitle}>Queremos conocerte</Text>
-          
-          {/* Avatar selector */}
-          <View style={styles.photoContainer}>
-            <TouchableOpacity style={styles.avatarWrapper} onPress={handlePickPhoto}>
-              {photoUri ? (
-                <Image source={{ uri: photoUri }} style={styles.avatarImage} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="camera-outline" size={32} color="#3B7BC0" />
-                  <Text style={styles.avatarPlaceholderText}>Foto de perfil</Text>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 40 : 0}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.card}>
+            <Text style={styles.title}>Crea tu Perfil</Text>
+            <Text style={styles.subtitle}>Queremos conocerte</Text>
+            
+            {/* Avatar selector */}
+            <View style={styles.photoContainer}>
+              <TouchableOpacity style={styles.avatarWrapper} onPress={handlePickPhoto}>
+                {photoUri ? (
+                  <Image source={{ uri: photoUri }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Ionicons name="camera-outline" size={32} color="#3B7BC0" />
+                    <Text style={styles.avatarPlaceholderText}>Foto de perfil</Text>
+                  </View>
+                )}
+                <View style={styles.addBadge}>
+                  <Ionicons name="add" size={16} color="#fff" />
                 </View>
-              )}
-              <View style={styles.addBadge}>
-                <Ionicons name="add" size={16} color="#fff" />
-              </View>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.label}>Nombre *</Text>
+            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Tu nombre" maxLength={20} />
+            
+            <Text style={styles.label}>Fecha de Nacimiento *</Text>
+            <TouchableOpacity style={styles.dateSelector} onPress={() => setShowDatePicker(true)}>
+              <Ionicons name="calendar-outline" size={20} color="#3B7BC0" style={{ marginRight: 10 }} />
+              <Text style={styles.dateText}>{formatDateString(birthDate)}</Text>
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={birthDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                maximumDate={new Date()}
+                minimumDate={new Date(1920, 0, 1)}
+                onValueChange={handleDateChange}
+              />
+            )}
+            
+            <Text style={styles.label}>Género</Text>
+            <View style={styles.genderRow}>
+              {GENDERS.map((g, i) => (
+                <TouchableOpacity 
+                  key={g} 
+                  style={[styles.genderBtn, selectedGender === i && styles.genderBtnActive]}
+                  onPress={() => setSelectedGender(i)}
+                >
+                  <Ionicons 
+                    name={g === 'masculino' ? 'male-outline' : g === 'femenino' ? 'female-outline' : 'person-outline'} 
+                    size={16} 
+                    color={selectedGender === i ? '#3B7BC0' : '#7A7E9A'} 
+                    style={{ marginRight: 6 }} 
+                  />
+                  <Text style={[styles.genderBtnText, selectedGender === i && styles.genderBtnTextActive]}>
+                    {g.charAt(0).toUpperCase() + g.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            
+            <Text style={styles.label}>País</Text>
+            <TouchableOpacity style={styles.countrySelector} onPress={() => setShowCountryModal(true)}>
+              <Ionicons name="location-outline" size={20} color="#3B7BC0" style={{ marginRight: 10 }} />
+              <Text style={styles.countryText}>{country || 'Selecciona tu país'}</Text>
+              <Ionicons name="chevron-down" size={18} color="#7A7E9A" style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Sobre mí</Text>
+            <TextInput 
+              style={[styles.input, { height: 90, textAlignVertical: 'top' }]} 
+              value={aboutMe} 
+              onChangeText={setAboutMe} 
+              placeholder="Cuéntanos algo sobre ti..." 
+              multiline 
+              maxLength={500} 
+            />
+            
+            <TouchableOpacity style={styles.button} onPress={handleCreate} disabled={loading || uploadingPhoto}>
+              {loading || uploadingPhoto ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Comenzar</Text>}
             </TouchableOpacity>
           </View>
-
-          <Text style={styles.label}>Nombre *</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Tu nombre" maxLength={20} />
-          
-          <Text style={styles.label}>Fecha de Nacimiento *</Text>
-          <TouchableOpacity style={styles.dateSelector} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={20} color="#3B7BC0" style={{ marginRight: 10 }} />
-            <Text style={styles.dateText}>{formatDateString(birthDate)}</Text>
-          </TouchableOpacity>
-
-          {showDatePicker && (
-            <DateTimePicker
-              value={birthDate}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              maximumDate={new Date()}
-              minimumDate={new Date(1920, 0, 1)}
-              onValueChange={handleDateChange}
-            />
-          )}
-          
-          <Text style={styles.label}>Género</Text>
-          <View style={styles.genderRow}>
-            {GENDERS.map((g, i) => (
-              <TouchableOpacity 
-                key={g} 
-                style={[styles.genderBtn, selectedGender === i && styles.genderBtnActive]}
-                onPress={() => setSelectedGender(i)}
-              >
-                <Ionicons 
-                  name={g === 'masculino' ? 'male-outline' : g === 'femenino' ? 'female-outline' : 'person-outline'} 
-                  size={16} 
-                  color={selectedGender === i ? '#3B7BC0' : '#7A7E9A'} 
-                  style={{ marginRight: 6 }} 
-                />
-                <Text style={[styles.genderBtnText, selectedGender === i && styles.genderBtnTextActive]}>
-                  {g.charAt(0).toUpperCase() + g.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          <Text style={styles.label}>País</Text>
-          <TouchableOpacity style={styles.countrySelector} onPress={() => setShowCountryModal(true)}>
-            <Ionicons name="location-outline" size={20} color="#3B7BC0" style={{ marginRight: 10 }} />
-            <Text style={styles.countryText}>{country || 'Selecciona tu país'}</Text>
-            <Ionicons name="chevron-down" size={18} color="#7A7E9A" style={{ marginLeft: 'auto' }} />
-          </TouchableOpacity>
-
-          <Text style={styles.label}>Sobre mí</Text>
-          <TextInput 
-            style={[styles.input, { height: 80, textAlignVertical: 'top' }]} 
-            value={aboutMe} 
-            onChangeText={setAboutMe} 
-            placeholder="Cuéntanos algo sobre ti..." 
-            multiline 
-            maxLength={500} 
-          />
-          
-          <TouchableOpacity style={styles.button} onPress={handleCreate} disabled={loading || uploadingPhoto}>
-            {loading || uploadingPhoto ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Comenzar</Text>}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Country Selection Modal */}
       <Modal visible={showCountryModal} animationType="slide" transparent>
@@ -243,7 +253,7 @@ export default function CreateProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#6BB8E0' },
-  scrollContent: { padding: 20, justifyContent: 'center', flexGrow: 1 },
+  scrollContent: { padding: 20, flexGrow: 1, paddingBottom: 40 },
   card: { backgroundColor: '#FDFBF5', borderRadius: 24, padding: 24, borderWidth: 2, borderColor: 'rgba(42,46,74,0.12)', shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#3B7BC0', textAlign: 'center', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#7A7E9A', textAlign: 'center', marginBottom: 20 },
