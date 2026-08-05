@@ -78,12 +78,7 @@ export default function LoginScreen() {
             <Text style={styles.linkText}>No tengo cuenta</Text>
           </TouchableOpacity>
         </Link>
-        
-        <Link href="/(auth)/forgot-password" asChild>
-          <TouchableOpacity style={styles.linkContainer}>
-            <Text style={styles.linkText}>Olvidé mi contraseña</Text>
-          </TouchableOpacity>
-        </Link>
+
       </View>
     </KeyboardAvoidingView>
   );

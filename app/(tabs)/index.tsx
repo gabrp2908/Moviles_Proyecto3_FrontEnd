@@ -49,7 +49,10 @@ export default function PersonasFeedScreen() {
       useNativeDriver: false,
     }).start(() => {
       // 1. Update UI state immediately
-      setProfiles(prev => prev.slice(1));
+      setProfiles(prev => {
+        const next = prev.slice(1);
+        return next;
+      });
       position.setValue({ x: 0, y: 0 });
       setSwiping(false);
 
@@ -152,11 +155,12 @@ export default function PersonasFeedScreen() {
 
             {/* Current card - swipeable */}
             <Animated.View
+              key={currentProfile.userId}
               style={[
                 styles.card,
                 {
                   transform: [
-                    { translateX: position.x },
+                    ...position.getTranslateTransform(),
                     { rotate: rotate },
                   ],
                 },
