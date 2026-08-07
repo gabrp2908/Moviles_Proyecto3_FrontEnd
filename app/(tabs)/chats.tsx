@@ -26,8 +26,12 @@ export default function ChatsScreen() {
   const loadChats = async () => {
     if (!user) return;
     try {
-      // Load chats
-      const data = await chatService.getChats();
+      // Load chats and incoming likes in parallel to reduce network delay
+      const [data, likesData] = await Promise.all([
+        chatService.getChats(),
+        matchService.getIncomingLikes().catch(() => [])
+      ]);
+
       const chatsList = Array.isArray(data) ? data : [];
       
       // Sort by last message date, or chat creation date if no messages exist yet
@@ -40,8 +44,6 @@ export default function ChatsScreen() {
       setChats(sortedList);
       setFilteredChats(sortedList);
 
-      // Load incoming likes for notifications badge
-      const likesData = await matchService.getIncomingLikes();
       if (Array.isArray(likesData)) {
         setUnreadNotifs(likesData.length);
       }

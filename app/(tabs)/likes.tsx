@@ -111,7 +111,7 @@ export default function NotificationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [matchModalVisible, setMatchModalVisible] = useState(false);
-  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const router = useRouter();
 
   const loadLikes = async () => {
@@ -137,8 +137,8 @@ export default function NotificationsScreen() {
     try {
       const res = await matchService.swipe(userId, true);
       setLikes(prev => prev.filter(l => l.userId !== userId));
-      if (res.matched && res.matchId) {
-        setCurrentMatchId(res.matchId);
+      if (res.matched && res.chatId) {
+        setCurrentChatId(res.chatId);
         setMatchModalVisible(true);
       }
     } catch (e) {
@@ -202,7 +202,7 @@ export default function NotificationsScreen() {
               style={styles.button}
               onPress={() => {
                 setMatchModalVisible(false);
-                if (currentMatchId) router.push(`/(tabs)/chat/${currentMatchId}` as any);
+                if (currentChatId) router.push(`/(tabs)/chat/${currentChatId}` as any);
               }}
             >
               <Text style={styles.buttonText}>Ir al chat</Text>

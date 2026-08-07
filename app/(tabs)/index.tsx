@@ -19,7 +19,7 @@ export default function PersonasFeedScreen() {
   const [toast, setToast] = useState<{ message: string; type: 'like' | 'nope' } | null>(null);
   const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [matchModalVisible, setMatchModalVisible] = useState(false);
-  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
   const router = useRouter();
   const position = useRef(new Animated.ValueXY()).current;
@@ -85,8 +85,8 @@ export default function PersonasFeedScreen() {
       // 2. Perform network request in background
       matchService.swipe(current.userId, liked)
         .then(res => {
-          if (res && res.matched && res.matchId) {
-            setCurrentMatchId(res.matchId);
+          if (res && res.matched && res.chatId) {
+            setCurrentChatId(res.chatId);
             setMatchModalVisible(true);
           }
         })
@@ -297,7 +297,7 @@ export default function PersonasFeedScreen() {
               style={styles.button}
               onPress={() => {
                 setMatchModalVisible(false);
-                if (currentMatchId) router.push(`/(tabs)/chat/${currentMatchId}` as any);
+                if (currentChatId) router.push(`/(tabs)/chat/${currentChatId}` as any);
               }}
             >
               <Text style={styles.buttonText}>Ir al chat</Text>

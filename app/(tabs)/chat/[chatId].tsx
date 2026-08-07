@@ -64,14 +64,17 @@ export default function ChatDetailScreen() {
   const loadInitialData = async () => {
     if (!chatId) return;
     try {
-      // 1. Load Messages
-      const data = await chatService.getMessages(chatId);
+      // 1. Load Messages and Chat list in parallel to avoid sequential blocking
+      const [data, allChats] = await Promise.all([
+        chatService.getMessages(chatId),
+        chatService.getChats()
+      ]);
+
       const msgs = data.messages || data;
       setMessages(Array.isArray(msgs) ? msgs.reverse() : []);
       chatService.markAsRead(chatId);
 
       // 2. Load Chat Info to get other user profile
-      const allChats = await chatService.getChats();
       const currentChat = Array.isArray(allChats) ? allChats.find(c => c.id === chatId) : null;
       if (currentChat) {
         const otherId = currentChat.participants.find(p => p !== user?.userId);

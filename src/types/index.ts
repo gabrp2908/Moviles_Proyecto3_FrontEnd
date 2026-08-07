@@ -9,7 +9,7 @@ export type UpdateProfilePayload = Partial<CreateProfilePayload>;
 export interface Preference { id?: string; userId: string; ageMin: number; ageMax: number; genders: Gender[]; countries: string[]; }
 export type UpdatePreferencePayload = Partial<Omit<Preference, 'id' | 'userId'>>;
 export interface SwipePayload { toUserId: string; direction: 'left' | 'right'; }
-export interface SwipeResponse { matched: boolean; matchId?: string; }
+export interface SwipeResponse { matched: boolean; matchId?: string; chatId?: string; }
 export interface Match { id: string; userIds: string[]; createdAt: string; }
 export interface IncomingLike extends FeedProfile { likedAt: string; }
 export interface ChatListItem { id: string; matchId: string; participants: string[]; lastMessage: { content: string; senderId: string; type: 'text' | 'image'; createdAt: string; } | null; unreadCount: number; createdAt: string; updatedAt: string; }
