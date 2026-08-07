@@ -39,7 +39,9 @@ api.interceptors.response.use((response) => {
 }, async (error) => {
   if (error.response && error.response.status === 401) {
     await clearToken();
-    // Maybe trigger an event to redirect to login
+    // Return a resolved empty response to avoid uncaught promise rejections
+    // AuthContext will detect the missing token and redirect to login
+    return Promise.resolve({ data: null, status: 401 });
   }
   return Promise.reject(error);
 });

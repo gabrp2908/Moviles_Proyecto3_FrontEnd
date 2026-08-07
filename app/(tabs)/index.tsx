@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Animated, PanResponder, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Animated, PanResponder, Dimensions, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { profileService } from '../../src/services/profileService';
 import { matchService } from '../../src/services/matchService';
 import { FeedProfile } from '../../src/types';
@@ -15,7 +17,11 @@ export default function PersonasFeedScreen() {
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'like' | 'nope' } | null>(null);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const [matchModalVisible, setMatchModalVisible] = useState(false);
+  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
 
+  const router = useRouter();
   const position = useRef(new Animated.ValueXY()).current;
   const swipeDirection = useRef<'none' | 'left' | 'right'>('none');
 
@@ -30,7 +36,23 @@ export default function PersonasFeedScreen() {
     }
   };
 
-  useEffect(() => { loadFeed(); }, []);
+  const loadNotificationsCount = async () => {
+    try {
+      const data = await matchService.getIncomingLikes();
+      if (Array.isArray(data)) {
+        setUnreadNotifs(data.length);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFeed();
+      loadNotificationsCount();
+    }, [])
+  );
 
   const showToast = (message: string, type: 'like' | 'nope') => {
     setToast({ message, type });
@@ -61,9 +83,16 @@ export default function PersonasFeedScreen() {
       }
 
       // 2. Perform network request in background
-      matchService.swipe(current.userId, liked).catch(err => {
-        console.error('Error on swipe api:', err);
-      });
+      matchService.swipe(current.userId, liked)
+        .then(res => {
+          if (res && res.matched && res.matchId) {
+            setCurrentMatchId(res.matchId);
+            setMatchModalVisible(true);
+          }
+        })
+        .catch(err => {
+          console.error('Error on swipe api:', err);
+        });
     });
   };
 
@@ -134,8 +163,16 @@ export default function PersonasFeedScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Personas</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.headerTitle}>Personas</Text>
+        <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/(tabs)/likes')}>
+          <Ionicons name="notifications-outline" size={26} color="#3B7BC0" />
+          {unreadNotifs > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadNotifs}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.cardStack}>
@@ -248,14 +285,40 @@ export default function PersonasFeedScreen() {
           <Text style={styles.toastText}>{toast.message}</Text>
         </Animated.View>
       )}
+
+      {/* Match Modal */}
+      <Modal visible={matchModalVisible} transparent animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalCard}>
+            <Ionicons name="sparkles" size={56} color="#E8C845" style={{ marginBottom: 12 }} />
+            <Text style={styles.modalTitle}>¡Es un match!</Text>
+            <Text style={styles.modalSubtitle}>Ahora pueden conversar</Text>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => {
+                setMatchModalVisible(false);
+                if (currentMatchId) router.push(`/(tabs)/chat/${currentMatchId}` as any);
+              }}
+            >
+              <Text style={styles.buttonText}>Ir al chat</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, { backgroundColor: '#7A7E9A', marginTop: 10 }]} onPress={() => setMatchModalVisible(false)}>
+              <Text style={styles.buttonText}>Seguir viendo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F0E8' },
-  header: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#4B8FD4' },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#4B8FD4' },
+  notifBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FDFBF5', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(42,46,74,0.12)', position: 'relative' },
+  badge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#D94F4F', borderRadius: 9, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   cardStack: { flex: 1, width: '100%', position: 'relative', alignItems: 'center', justifyContent: 'center' },
   card: {
     position: 'absolute',
@@ -305,5 +368,11 @@ const styles = StyleSheet.create({
   toastContainer: { position: 'absolute', bottom: 40, left: 20, right: 20, padding: 16, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 5 },
   toastLike: { backgroundColor: '#5BBF6B' },
   toastNope: { backgroundColor: '#D94F4F' },
-  toastText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
+  toastText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalCard: { backgroundColor: '#FDFBF5', borderRadius: 24, padding: 32, alignItems: 'center', borderWidth: 2, borderColor: 'rgba(42,46,74,0.12)' },
+  modalTitle: { fontSize: 28, fontWeight: 'bold', color: '#3B7BC0', marginBottom: 8 },
+  modalSubtitle: { fontSize: 16, color: '#7A7E9A', marginBottom: 24 },
+  button: { backgroundColor: '#4B8FD4', borderRadius: 16, padding: 16, alignItems: 'center', width: '100%', shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 0, elevation: 4 },
+  buttonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
 });

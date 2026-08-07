@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { chatService } from '../../src/services/chatService';
 import { profileService } from '../../src/services/profileService';
+import { matchService } from '../../src/services/matchService';
 import { useSocket } from '../../src/context/SocketContext';
 import { useAuth } from '../../src/context/AuthContext';
 import { ChatListItem, Profile } from '../../src/types';
@@ -17,16 +18,33 @@ export default function ChatsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
   const router = useRouter();
   const { onlineUsers, socket } = useSocket();
   const { user } = useAuth();
 
   const loadChats = async () => {
+    if (!user) return;
     try {
+      // Load chats
       const data = await chatService.getChats();
       const chatsList = Array.isArray(data) ? data : [];
-      setChats(chatsList);
-      setFilteredChats(chatsList);
+      
+      // Sort by last message date, or chat creation date if no messages exist yet
+      const sortedList = chatsList.sort((a, b) => {
+        const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : new Date(a.createdAt).getTime();
+        const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : new Date(b.createdAt).getTime();
+        return timeB - timeA;
+      });
+
+      setChats(sortedList);
+      setFilteredChats(sortedList);
+
+      // Load incoming likes for notifications badge
+      const likesData = await matchService.getIncomingLikes();
+      if (Array.isArray(likesData)) {
+        setUnreadNotifs(likesData.length);
+      }
 
       // Fetch missing profiles
       const missingIds = new Set<string>();
@@ -43,7 +61,24 @@ export default function ChatsScreen() {
           Array.from(missingIds).map(async (id) => {
             try {
               const p = await profileService.getProfile(id);
-              newProfiles[id] = p;
+              if (p) {
+                newProfiles[id] = p;
+              } else {
+                newProfiles[id] = {
+                  id,
+                  userId: id,
+                  name: 'Usuario',
+                  photos: [],
+                  aboutMe: '',
+                  birthDate: '',
+                  age: 0,
+                  height: null,
+                  gender: null,
+                  country: '',
+                  education: null,
+                  languages: []
+                };
+              }
             } catch (err) {
               console.log('Error fetching profile', id);
             }
@@ -62,8 +97,8 @@ export default function ChatsScreen() {
   // Reload chats every time the screen gains focus (e.g. returning from a chat)
   useFocusEffect(
     useCallback(() => {
-      loadChats();
-    }, [])
+      if (user) loadChats();
+    }, [user])
   );
 
   // Listen for new messages via socket to update the list in real-time
@@ -88,8 +123,12 @@ export default function ChatsScreen() {
           }
           return chat;
         });
-        // Move the chat with the new message to the top
-        updated.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        // Move the chat with the new message to the top based on lastMessage createdAt
+        updated.sort((a, b) => {
+          const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : new Date(a.createdAt).getTime();
+          const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : new Date(b.createdAt).getTime();
+          return timeB - timeA;
+        });
         return updated;
       });
       setFilteredChats(prev => {
@@ -109,7 +148,11 @@ export default function ChatsScreen() {
           }
           return chat;
         });
-        updated.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        updated.sort((a, b) => {
+          const timeA = a.lastMessage ? new Date(a.lastMessage.createdAt).getTime() : new Date(a.createdAt).getTime();
+          const timeB = b.lastMessage ? new Date(b.lastMessage.createdAt).getTime() : new Date(b.createdAt).getTime();
+          return timeB - timeA;
+        });
         return updated;
       });
     };
@@ -200,6 +243,11 @@ export default function ChatsScreen() {
         <Text style={styles.header}>Chats</Text>
         <TouchableOpacity style={styles.notifBtn} onPress={() => router.push('/(tabs)/likes')}>
           <Ionicons name="notifications-outline" size={26} color="#3B7BC0" />
+          {unreadNotifs > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadNotifs}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -231,7 +279,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F0E8' },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 },
   header: { fontSize: 24, fontWeight: 'bold', color: '#4B8FD4' },
-  notifBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FDFBF5', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(42,46,74,0.12)' },
+  notifBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FDFBF5', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(42,46,74,0.12)', position: 'relative' },
+  badge: { position: 'absolute', top: -4, right: -4, backgroundColor: '#D94F4F', borderRadius: 9, minWidth: 18, height: 18, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4 },
+  badgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
   searchContainer: { paddingHorizontal: 16, paddingVertical: 12 },
   searchInput: { backgroundColor: '#FDFBF5', borderWidth: 2, borderColor: '#C8C4D8', borderRadius: 16, padding: 12, fontSize: 16 },
   listContent: { paddingHorizontal: 16, flexGrow: 1 },

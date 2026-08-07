@@ -29,8 +29,15 @@ export const profileService = {
     return response.data;
   },
 
-  getProfile: async (userId: string): Promise<Profile> => {
-    const response = await api.get(`/profiles/${userId}`);
-    return response.data;
+  getProfile: async (userId: string): Promise<Profile | null> => {
+    try {
+      const response = await api.get(`/profiles/${userId}`);
+      return response.data;
+    } catch (e: any) {
+      if (e.response && e.response.status === 404) {
+        return null;
+      }
+      throw e;
+    }
   }
 };

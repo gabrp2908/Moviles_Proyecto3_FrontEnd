@@ -77,8 +77,27 @@ export default function ChatDetailScreen() {
         const otherId = currentChat.participants.find(p => p !== user?.userId);
         if (otherId) {
           setOtherUserId(otherId);
-          const profile = await profileService.getProfile(otherId);
-          setOtherProfile(profile);
+          try {
+            const profile = await profileService.getProfile(otherId);
+            if (!profile) throw new Error('Profile not found');
+            setOtherProfile(profile);
+          } catch (profileErr) {
+            console.warn('Could not fetch user profile, using fallback:', profileErr);
+            setOtherProfile({
+              id: otherId,
+              userId: otherId,
+              name: 'Usuario',
+              photos: [],
+              aboutMe: '',
+              birthDate: '',
+              age: 0,
+              height: null,
+              gender: null,
+              country: '',
+              education: null,
+              languages: []
+            });
+          }
         }
       }
     } catch (e) {
