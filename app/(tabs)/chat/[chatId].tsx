@@ -93,7 +93,7 @@ export default function ChatDetailScreen() {
       try {
         setUploading(true);
         const uploadResult = await imageService.uploadChatImage(selectedImage);
-        const messageContent = text.trim() || '📷 Imagen';
+        const messageContent = text.trim() || ' ';
         socketActions.sendMessage(chatId, messageContent, 'image', uploadResult.imageUrl);
         setSelectedImage(null);
         setText('');
@@ -152,7 +152,9 @@ export default function ChatDetailScreen() {
           {item.type === 'image' && item.imageUrl && (
             <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
           )}
-          {!!item.content && <Text style={styles.messageText}>{item.content}</Text>}
+          {!!(item.content && item.content.trim()) && !(item.type === 'image' && item.content.trim() === '') && (
+            <Text style={styles.messageText}>{item.content}</Text>
+          )}
           <Text style={styles.timeText}>{formatTime(item.createdAt)}</Text>
         </View>
       </View>
