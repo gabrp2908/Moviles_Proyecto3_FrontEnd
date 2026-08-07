@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, Tex
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { chatService } from '../../src/services/chatService';
 import { profileService } from '../../src/services/profileService';
 import { useSocket } from '../../src/context/SocketContext';
@@ -17,7 +18,7 @@ export default function ChatsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const router = useRouter();
-  const { onlineUsers } = useSocket();
+  const { onlineUsers, socket } = useSocket();
   const { user } = useAuth();
 
   const loadChats = async () => {
@@ -58,12 +59,71 @@ export default function ChatsScreen() {
     }
   };
 
-  useEffect(() => { loadChats(); }, []);
+  // Reload chats every time the screen gains focus (e.g. returning from a chat)
+  useFocusEffect(
+    useCallback(() => {
+      loadChats();
+    }, [])
+  );
+
+  // Listen for new messages via socket to update the list in real-time
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (msg: any) => {
+      setChats(prev => {
+        const updated = prev.map(chat => {
+          if (chat.id === msg.chatId) {
+            return {
+              ...chat,
+              lastMessage: {
+                content: msg.content,
+                senderId: msg.senderId,
+                type: msg.type || 'text',
+                createdAt: msg.createdAt,
+              },
+              updatedAt: msg.createdAt,
+              unreadCount: msg.senderId !== user?.userId ? chat.unreadCount + 1 : chat.unreadCount,
+            };
+          }
+          return chat;
+        });
+        // Move the chat with the new message to the top
+        updated.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        return updated;
+      });
+      setFilteredChats(prev => {
+        const updated = prev.map(chat => {
+          if (chat.id === msg.chatId) {
+            return {
+              ...chat,
+              lastMessage: {
+                content: msg.content,
+                senderId: msg.senderId,
+                type: msg.type || 'text',
+                createdAt: msg.createdAt,
+              },
+              updatedAt: msg.createdAt,
+              unreadCount: msg.senderId !== user?.userId ? chat.unreadCount + 1 : chat.unreadCount,
+            };
+          }
+          return chat;
+        });
+        updated.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        return updated;
+      });
+    };
+
+    socket.on('newMessage', handleNewMessage);
+    return () => {
+      socket.off('newMessage', handleNewMessage);
+    };
+  }, [socket, user?.userId]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadChats();
-  }, [profiles]); // keep reference to current profiles
+  }, []);
 
   const handleSearch = (text: string) => {
     setSearch(text);
