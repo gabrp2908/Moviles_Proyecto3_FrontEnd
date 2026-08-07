@@ -16,6 +16,11 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'Por favor, rellena todos los campos');
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert('Error', 'Por favor, ingresa un correo electrónico válido');
+      return;
+    }
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Las contraseñas no coinciden');
       return;

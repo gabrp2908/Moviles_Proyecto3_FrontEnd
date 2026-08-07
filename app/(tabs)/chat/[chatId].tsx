@@ -214,7 +214,13 @@ export default function ChatDetailScreen() {
             )}
           </View>
         </View>
-        <View style={{ width: 40 }} />
+        {otherUserId ? (
+          <TouchableOpacity onPress={() => router.push(`/(tabs)/chat/profile/${otherUserId}` as any)} style={{ padding: 8 }}>
+            <Ionicons name="information-circle-outline" size={26} color="#3B7BC0" />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       <KeyboardAvoidingView 

@@ -53,6 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen name="likes" options={{ href: null }} />
       <Tabs.Screen name="create-profile" options={{ href: null, tabBarStyle: { display: 'none' } }} />
       <Tabs.Screen name="chat/[chatId]" options={{ href: null, tabBarStyle: { display: 'none' } }} />
+      <Tabs.Screen name="chat/profile/[userId]" options={{ href: null, tabBarStyle: { display: 'none' } }} />
     </Tabs>
   );
 }
