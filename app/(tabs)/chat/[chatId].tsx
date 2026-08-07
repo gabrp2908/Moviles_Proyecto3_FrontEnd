@@ -47,17 +47,19 @@ export default function ChatDetailScreen() {
         }
       };
 
-      socket.on('message:new', handleNewMessage);
+      socket.on('newMessage', handleNewMessage);
       socket.on('typing:status', handleTyping);
 
       return () => {
-        socket.off('message:new', handleNewMessage);
+        socket.off('newMessage', handleNewMessage);
         socket.off('typing:status', handleTyping);
         socketActions.leave(chatId);
         chatService.markAsRead(chatId);
       };
     }
   }, [chatId, socket]);
+
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const loadInitialData = async () => {
     if (!chatId) return;
@@ -84,10 +86,27 @@ export default function ChatDetailScreen() {
     }
   };
 
-  const handleSend = () => {
-    if (!text.trim() || !chatId) return;
-    socketActions.sendMessage(chatId, text.trim());
-    setText('');
+  const handleSend = async () => {
+    if ((!text.trim() && !selectedImage) || !chatId) return;
+    
+    if (selectedImage) {
+      try {
+        setUploading(true);
+        const uploadResult = await imageService.uploadChatImage(selectedImage);
+        const messageContent = text.trim() || '📷 Imagen';
+        socketActions.sendMessage(chatId, messageContent, 'image', uploadResult.imageUrl);
+        setSelectedImage(null);
+        setText('');
+      } catch (e: any) {
+        console.error('Image send error:', e);
+        Alert.alert('Error', 'No se pudo enviar la imagen. Intenta de nuevo.');
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      socketActions.sendMessage(chatId, text.trim());
+      setText('');
+    }
   };
 
   const handlePickImage = async () => {
@@ -100,14 +119,10 @@ export default function ChatDetailScreen() {
       });
 
       if (!result.canceled && result.assets[0]) {
-        setUploading(true);
-        const uploadResult = await imageService.uploadChatImage(result.assets[0].uri);
-        socketActions.sendMessage(chatId, '', 'image', uploadResult.imageUrl);
+        setSelectedImage(result.assets[0].uri);
       }
     } catch (error) {
-      Alert.alert('Error', 'No se pudo subir la imagen.');
-    } finally {
-      setUploading(false);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen.');
     }
   };
 
@@ -191,24 +206,34 @@ export default function ChatDetailScreen() {
           contentContainerStyle={styles.listContent}
         />
         
-        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-          <TouchableOpacity style={styles.attachBtn} onPress={handlePickImage} disabled={uploading}>
-            {uploading ? (
-              <ActivityIndicator size="small" color="#4B8FD4" />
-            ) : (
+        <View style={[styles.inputWrapper, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          {selectedImage && (
+            <View style={styles.previewContainer}>
+              <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+              <TouchableOpacity style={styles.discardPreviewBtn} onPress={() => setSelectedImage(null)}>
+                <Ionicons name="close-circle" size={28} color="#D44040" />
+              </TouchableOpacity>
+            </View>
+          )}
+          <View style={styles.inputContainer}>
+            <TouchableOpacity style={styles.attachBtn} onPress={handlePickImage} disabled={uploading}>
               <Ionicons name="image-outline" size={24} color="#7A7E9A" />
-            )}
-          </TouchableOpacity>
-          <TextInput
-            style={styles.input}
-            placeholder="Escribe un mensaje..."
-            value={text}
-            onChangeText={handleTextChange}
-            multiline
-          />
-          <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-            <Ionicons name="send" size={20} color="#fff" />
-          </TouchableOpacity>
+            </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="Escribe un mensaje..."
+              value={text}
+              onChangeText={handleTextChange}
+              multiline
+            />
+            <TouchableOpacity style={styles.sendBtn} onPress={handleSend} disabled={uploading}>
+              {uploading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="send" size={20} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -238,7 +263,11 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 16, color: '#2A2E4A' },
   messageImage: { width: 200, height: 200, borderRadius: 12, marginBottom: 8, resizeMode: 'cover' },
   timeText: { fontSize: 10, color: '#7A7E9A', alignSelf: 'flex-end', marginTop: 4 },
-  inputContainer: { flexDirection: 'row', paddingHorizontal: 12, paddingTop: 12, backgroundColor: '#FDFBF5', borderTopWidth: 1, borderTopColor: '#C8C4D8', alignItems: 'center' },
+  inputWrapper: { backgroundColor: '#FDFBF5', borderTopWidth: 1, borderTopColor: '#C8C4D8' },
+  previewContainer: { padding: 12, paddingBottom: 0, position: 'relative', alignSelf: 'flex-start' },
+  previewImage: { width: 100, height: 100, borderRadius: 12, resizeMode: 'cover' },
+  discardPreviewBtn: { position: 'absolute', top: 4, right: 4, backgroundColor: '#FDFBF5', borderRadius: 14 },
+  inputContainer: { flexDirection: 'row', paddingHorizontal: 12, paddingTop: 12, alignItems: 'center' },
   attachBtn: { padding: 8, marginRight: 4 },
   input: { flex: 1, backgroundColor: '#F5F0E8', borderWidth: 1, borderColor: '#C8C4D8', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 16, maxHeight: 100 },
   sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#4B8FD4', justifyContent: 'center', alignItems: 'center', marginLeft: 8, shadowColor: '#2A2E4A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 0, elevation: 2 },
